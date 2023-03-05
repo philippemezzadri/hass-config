@@ -1,0 +1,12 @@
+sensor:
+  - platform: metar
+    airport_name: Pontoise
+    airport_code: LFPT
+    monitored_conditions:
+      - time
+      - temperature
+      - wind
+      - pressure
+      - visibility
+      - precipitation
+      - sky

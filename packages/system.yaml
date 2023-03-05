@@ -1,0 +1,15 @@
+sensor:
+  - platform: command_line
+    name: CPU IO Wait
+    command: top -b -n1 | grep ^CPU | awk '{printf("%.0f%"), $10}'
+    scan_interval: 3
+    unit_of_measurement: "%"
+    value_template: "{{ value }}"
+
+  - platform: systemmonitor
+    resources:
+      - type: disk_use_percent
+      - type: memory_use_percent
+      - type: processor_use
+      - type: processor_temperature
+      - type: last_boot

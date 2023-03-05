@@ -1,0 +1,33 @@
+sensor:
+  - platform: cert_expiry
+    host: www.mezzadri.fr
+
+template:
+  - sensor:
+      - name: days_before_cert_expiry
+        state: >-
+          {{((as_timestamp(states('sensor.cert_expiry_timestamp_www_mezzadri_fr'),0) - as_timestamp(now())) / 86400)  | int(0)  }}
+
+automation:
+  - alias: Auto Certbot
+    description: ''
+    trigger:
+    - platform: state
+      entity_id: sensor.days_before_cert_expiry
+      to: '20'
+    condition: []
+    action:
+    - service: notify.persistent_notification
+      data:
+        message: Renouvellement du certificat Let's Encrypt
+    - service: hassio.addon_start
+      data:
+        addon: core_letsencrypt
+    - delay:
+        hours: 0
+        minutes: 2
+        seconds: 0
+        milliseconds: 0
+    - service: homeassistant.restart
+      data: {}
+    mode: single

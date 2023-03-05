@@ -1,0 +1,43 @@
+switch:
+  - platform: template
+    switches:
+      radiateur_sdb:
+        friendly_name: Switch Radiateur SdB
+        value_template: "{{ is_state('switch.fil_pilote_sdb', 'off') }}"
+        turn_on:
+          service: switch.turn_off
+          data:
+            entity_id: switch.fil_pilote_sdb
+        turn_off:
+          service: switch.turn_on
+          data:
+            entity_id: switch.fil_pilote_sdb
+        icon_template: >-
+          {% if is_state('switch.fil_pilote_sdb', 'off') %}
+            mdi:radiator
+          {% else %}
+            mdi:radiator-disabled
+          {% endif %}
+          
+climate:
+  - platform: smart_thermostat
+    name: Thermostat SDB
+    unique_id: sdb_thermostat
+    heater: switch.radiateur_sdb
+    target_sensor: sensor.sdb_temperature_temperature
+    outdoor_sensor: sensor.outdoor_temperature
+    target_temp_step: 0.5
+    min_temp: 7
+    max_temp: 28
+    ac_mode: False
+    target_temp: 19
+    eco_temp: 17
+    keep_alive:
+      seconds: 60
+    away_temp: 14
+    kp: 4
+    ki: 0.05
+    kd: 1000
+    ke: 0.6
+    pwm: 00:10:00
+    debug: true

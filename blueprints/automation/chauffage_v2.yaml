@@ -1,0 +1,155 @@
+blueprint:
+  name: "Heating scheduling automation 2.0"
+  description: "# Heating scheduling automation 2.0
+
+
+    Sets temperature setpoint depending on several factors:
+
+    - Away mode (anti-freeze), taking precedence on all other automations
+
+    - Eco mode override, that can be used when the room is not occupied
+
+    - Holiday mode, that can be used when people are all day at home (non working days, school holidays).
+
+    - Confort / Eco mode weekly schedules (normal and holidays)
+
+    - Temperature setpoints for Confort, Eco and Anti-freeze modes
+    "
+  domain: automation
+
+  input:
+    climate:
+      name: Climate
+      description: "Target climate"
+      selector:
+        target:
+          entity:
+            domain: climate
+    away:
+      name: Anti freeze mode (on/off)
+      description: General override forcing the anti-freeze temperature setting.
+      selector:
+        entity:
+          domain:
+            - input_boolean
+            - binary_sensor
+    eco_override:
+      name: Eco mode overide
+      description: "Override forcing the Eco mode, for example when the room is not occupied."
+      selector:
+        entity:
+          domain:
+            - input_boolean
+            - binary_sensor
+    holidays:
+      name: Holidays mode
+      description: "If True, the holiday weekly schedule will be used instead of normal schedule."
+      selector:
+        entity:
+          domain:
+            - input_boolean
+            - binary_sensor
+    schedule:
+      name: Weekly Schedule
+      description: Confort mode weekly schedule (Normal)
+      selector:
+        entity:
+          domain: schedule
+    holiday_schedule:
+      name: Holidays Weekly Schedule
+      description: Confort mode weekly schedule (during holidays)
+      selector:
+        entity:
+          domain: schedule
+    confort_temp:
+      name: Confort temperature setpoint
+      description: Default value is 19°C
+      selector:
+        entity:
+          domain: input_number
+    eco_temp:
+      name: Eco temperature setpoint
+      description: Default value is 17°C
+      selector:
+        entity:
+          domain: input_number
+    away_temp:
+      name: Anti-freeze temperature setpoint
+      description: Default value is 7°C
+      selector:
+        entity:
+          domain: input_number
+
+mode: single
+
+variables:
+  confort_temp: !input "confort_temp"
+  eco_temp: !input "eco_temp"
+  away_temp: !input "away_temp"
+
+trigger:
+  - platform: homeassistant
+    event: start
+  - platform: state
+    entity_id:
+      - !input "schedule"
+      - !input "holiday_schedule"
+      - !input "confort_temp"
+      - !input "eco_temp"
+      - !input "away_temp"
+      - !input "away"
+      - !input "eco_override"
+      - !input "holidays"
+
+action:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input "away"
+            state: "on"
+        sequence:
+          - service: climate.set_temperature
+            data:
+              temperature: "{{ states(away_temp) | float(7) }}"
+            target: !input "climate"
+      - conditions:
+          - condition: state
+            entity_id: !input "eco_override"
+            state: "on"
+        sequence:
+          - service: climate.set_temperature
+            data:
+              temperature: "{{ states(eco_temp) | float(17) }}"
+            target: !input "climate"
+      - conditions:
+          - condition: state
+            entity_id: !input "holiday_schedule"
+            state: "on"
+          - condition: state
+            entity_id: !input "holidays"
+            state: "on"
+          - condition: state
+            entity_id: !input "eco_override"
+            state: "off"
+        sequence:
+          - service: climate.set_temperature
+            data:
+              temperature: "{{ states(confort_temp) | float(19) }}"
+            target: !input "climate"
+      - conditions:
+          - condition: state
+            entity_id: !input "schedule"
+            state: "on"
+          - condition: state
+            entity_id: !input "eco_override"
+            state: "off"
+        sequence:
+          - service: climate.set_temperature
+            data:
+              temperature: "{{ states(confort_temp) | float(19) }}"
+            target: !input "climate"
+    default:
+      - service: climate.set_temperature
+        data:
+          temperature: "{{ states(eco_temp) | float(17) }}"
+        target: !input "climate"
